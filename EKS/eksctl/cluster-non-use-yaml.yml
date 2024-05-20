@@ -1,0 +1,12 @@
+# --dry-run을 사용하여 내가 실행할 명령에 대한 정보를 볼 수 있다.
+eksctl create cluster \
+  --name $CLUSTER_NAME \
+  --region=$AWS_DEFAULT_REGION \
+  --nodegroup-name=$CLUSTER_NAME-nodegroup \
+  --node-type=t3.medium \
+  --node-volume-size=30 \
+  --vpc-public-subnets "$PubSubnet1,$PubSubnet2" \
+  --version 1.26 \
+  --ssh-access \
+  --external-dns-access \
+  --dry-run | yh
