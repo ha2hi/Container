@@ -5,3 +5,9 @@ https://github.com/eksctl-io/eksctl/tree/main/examples
 ```
 kubectl get nodes -o jsonpath="{range .items[*]}{.metadata.labels['beta\.kubernetes\.io\/instance-type']}{'\t'}{.status.capacity.pods}{'\n'}{end}"
 ```
+
+### 노드그룹 Selector
+```
+ndoeSelector:
+  eks.amazonaws.com/nodegroup: 노드그룹명
+```
