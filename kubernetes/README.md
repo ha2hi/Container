@@ -8,6 +8,7 @@ Play with Kubernetes는 도커에서 제공하는 실습용 환경으로 도커 
 
 ## 정오표
 p.219 14줄 "kubectl apply -k deploy.yaml" -> "kubectl apply -f deploy.yaml"
+p.305 4줄 kubectl uncordon -> kubectl undrain
 
 ## 다시 봐야되는 목록
 1. p.226 무중단 배포를 할 때 주의할 점

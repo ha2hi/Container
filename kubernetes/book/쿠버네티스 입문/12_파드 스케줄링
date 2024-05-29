@@ -115,4 +115,81 @@ spec:
         image: nginx:1.12-alpine
 ```
 
+## 테인트(taint)와 톨러레이션(toleration)
+특정 노드에 테인트(taint)를 설정하면 해당 노드에는 파드를 스케줄링하지 않습니다.  
+만약 테인트(taint) 설정한 노드에 스케줄링하고 싶은 경우 톨러레이션(toleration)을 설정해야됩니다.  
+  
+테인트는 key, value, effect로 구성됩니다. 
+ex) kubectl taint nodes <노드명> <key>=<value>:<effect>
+```
+kubectl taint nodes docker-desktop key01=value01:NoSchedule
+
+# 노드 정보 확인
+kubectl describe nodes docker-desktop
+```
+- Deploy 배포
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  labels:
+    app: my-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-nginx
+  template:
+    metadata:
+      lables:
+        app: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx:1.18.0
+        ports:
+        - containerPort: 8080
+    tolerations:
+    - key: "key01"
+      operator: "Equal
+      value: "value01"
+      effect: "NoSchedule"
+```
+
+- 테인트(taint) 제거
+```
+kubectl taint nodes docker-desktop key01=value01:NoSchedule-
+```
+
+## 커든(cordon)
+특정 노드에 커든(cordon)을 설정하면 해당 노드에는 스케줄링해서 실행하지 않습니다.  
+테인트(taint)와 비슷한 기능  
+- 커든(cordon) 설정
+kubectl cordon <노드명>
+```
+kubectl cordon docker-desktop
+```
+- 커든(cordon) 제거
+kubectl uncordon <노드명>
+```
+kubectl uncordon docker-desktop
+```
+
+## 드레인(drain)
+드레인(drain)은 지정된 노드에 있는 파드들을 전부 다른 노드로 이동시키고 기존 노드에 있던 파드들은 삭제하는 명령입니다.  
+노드에 데몬세트로 실행한 파드가 있으면 드레인(drain)을 적용할 수 없습니다. 적용하고 싶은 경우 `--ignore-daemonsets=true" 옵션을 추가해야 합니다.  
+그리고 컨트롤러로 실행하지 않은 파드들도 드레인(drain)을 설정할 수 없습니다.  
+  
+컨트롤러와 스태틱 파드가 있는 경우 중요한 파드일 수 있으니 강제로 삭제가 되지 않습니다. 만약 강제로 삭제하고 싶다면 '--force'옵션을 추가햐아합니다.  
+- 드레인(drain) 설정
+kubectl drain <노드명>
+```
+kubectl drain docker-desktop
+```
+- 드레인(drain) 제거
+kubectl undrain <노드명>
+```
+kubectl undrain docker-desktop
+```
 
