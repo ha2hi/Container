@@ -1,0 +1,133 @@
+## 볼륨
+컨테이너와 다른 컨테이너끼리 하나의 데이터 저장소를 가지고 읽고 쓰기 작업을 하고 싶을 수 있습니다.  
+그리고 컨테이너가 문제가 생길 때 데이터를 저장해야 되는 경우 가 있을 것 입니다.(ex. DB)  
+이런 경우에 볼륨을 사용합니다.  
+볼륨을 사용하는 경우 컨테이너를 재시작하더라도 데이터를 유지시킬 수 있습니다.  
+  
+여러가지 볼륨 플러그인을 제공하는데 여기서 emptyDir, hostPath, NFS 서버를 알아보도록 하겠습니다.  
+
+### emptyDir
+emptyDir은 파드가 실행되는 호스트의 디스크를 임시로 컨테이너 볼륨으로 할당해 사용하는 방법입니다.  
+파드가 사라지는 경우 emptyDir에 할당해 사용했던 볼륨의 데이터가 사라집니다.  
+주로 메모리와 디스크를 함께 사용하는 대용량 데이터 계산에서 사용합니다.  
+컨테이너가 문제가 발생하여 재시작되더라도 파드는 살아 있으므로 emptyDir에 저장한 데이터를 계속 사용할 수 있습니다.  
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-simple-pod
+spec:
+  containers:
+  - name: kubernetes-simple-pod
+    image: arisu1000/simple-container-app:latest
+    volumeMounts:
+    - mountPath: /emptydir
+      name: emptydir-vol
+    # ports:
+    # - containerPort: 8080
+  volumes:
+  - name: emptydir-vol
+    emptyDir: {}
+```
+
+### hostPath
+hostPath는 파드를 실행하는 호스트의 파일아나 디렉토리를 파드에 마운트해서 사용하는 방법입니다.  
+파드를 중지하는 경우에도 마운트한 호스트 디렉토리에는 데이터가 보존됩니다.  
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-hostpath-pod
+spec:
+  containers:
+  - name: kubernetes-hostpath-pod
+    image: arisu1000/simple-container-app:latest
+    volumeMounts:
+    - mountPath: /test-volume
+      name: hostpath-vol
+    ports:
+    - containerPort: 8080
+  volumes:
+  - name: hostpath-vol
+    hostPath:
+      path: /tmp
+      type: Directory
+```
+
+### NFS(Network File System)
+NFS 볼륨은 기존에 사용하는 NFS 서버를 이용해서 파드를 마운트 하는 것 입니다.  
+여러 개 파드에서 볼륨 하나를 가지고 읽기/쓰기를 동시에 할 때 사용합니다.  
+파드 하나에 NFS 서버를 설정하고 나머지 파드에서 해당 파드의 NFS 서버를 nfs 볼륨으로 마운트합니다.
+- NFS 서버 설정 예
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-server
+  labels:
+    app: nfs-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  template:
+    metadata:
+      labels:
+        app: nfs-server
+    spec:
+      containers:
+      - name: nfs-server
+        image: arisu1000/nfs-server:latest
+        ports:
+        - name: nfs
+          containerPort: 2049
+        - name: mountd
+          containerPort: 20048
+        - name: rpcbind
+          containerPort: 111
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /exports
+          name: hostpath-vol
+      volumes:
+      - name: hostpath-vol
+        hostPath:
+          path: /tmp
+          type: Directory
+```
+- NFS 서버에 접속할 클라이언트 앱
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-nfsapp-pod
+  labels:
+    app: nfs-client
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nfs-client
+  template:
+    metadata:
+      labels:
+        app: nfs-client
+    spec:
+      containers:
+      - name: kubernetes-nfsapp-pod
+        image: arisu1000/simple-container-app:latest
+        volumeMounts:
+        - mountPath: /test-nfs
+          name: nfs-vol
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: nfs-vol
+        nfs:
+          server: 10.1.6.126    # 여기에 nfs-server pod의 ip를 넣습니다.
+          path: /
+```
+
+### 퍼시스턴트 볼륨과 퍼시스턴트 볼륨 클레임
